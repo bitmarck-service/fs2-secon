@@ -6,6 +6,7 @@
 [![Apache License 2.0](https://img.shields.io/github/license/bitmarck-service/fs2-secon.svg?maxAge=3600)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Fs2 Interop für Verschlüsselung nach GKV Datenaustausch (SECON).
+
 Basiert auf [DieTechniker/secon-tool](https://github.com/DieTechniker/secon-tool).
 
 ## Usage
