@@ -14,7 +14,7 @@ Basiert auf [DieTechniker/secon-tool](https://github.com/DieTechniker/secon-tool
 ### build.sbt
 
 ```sbt
-libraryDependencies += "de.bitmarck.bms" %% "fs2-secon" % "0.0.1"
+libraryDependencies += "de.bitmarck.bms" %% "fs2-secon" % "0.1.0"
 ```
 
 ## License
