@@ -14,6 +14,8 @@ Basiert auf [DieTechniker/secon-tool](https://github.com/DieTechniker/secon-tool
 
 ```sbt
 libraryDependencies += "de.bitmarck.bms" %% "fs2-secon" % "0.0.1"
+```
 
 ## License
+
 This project uses the Apache 2.0 License. See the file called LICENSE.
