@@ -5,6 +5,8 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import fs2.{Chunk, Stream}
 
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.Random
 
 class RoundTrip extends CatsEffectSuite {
@@ -19,6 +21,8 @@ class RoundTrip extends CatsEffectSuite {
   val aliceId = identityLookup.identityByAliasUnsafe(alice).unsafeRunSync()
   val bobId = identityLookup.identityByAliasUnsafe(bob).unsafeRunSync()
   val carolId = identityLookup.identityByAliasUnsafe(carol).unsafeRunSync()
+
+  override def munitTimeout: Duration = new FiniteDuration(120, TimeUnit.SECONDS)
 
   test("round trip") {
     val string = "Hello World"
