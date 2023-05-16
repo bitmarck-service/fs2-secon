@@ -12,7 +12,7 @@
 ### build.sbt
 
 ```sbt
-libraryDependencies += "de.bitmarck.bms" %% "fs2-secon" % "0.1.0"
+libraryDependencies += "de.bitmarck.bms" %% "fs2-secon" % "0.2.0"
 ```
 
 ## License
