@@ -7,6 +7,7 @@ name := (core.projectRefs.head / name).value
 
 val V = new {
   val betterMonadicFor = "0.3.1"
+  val bouncyCastle = "1.75"
   val catsEffect = "3.5.0"
   val fs2 = "3.7.0"
   val logbackClassic = "1.4.8"
@@ -83,7 +84,8 @@ lazy val core = projectMatrix.in(file("core"))
     name := "fs2-secon",
     libraryDependencies ++= Seq(
       "co.fs2" %% "fs2-io" % V.fs2,
-      "de.tk.opensource" % "secon-tool" % V.seconTool,
+      "de.tk.opensource" % "secon-tool" % V.seconTool exclude("org.bouncycastle", "bcpkix-jdk15on"),
+      "org.bouncycastle" % "bcpkix-jdk18on" % V.bouncyCastle,
       "org.typelevel" %% "cats-effect" % V.catsEffect,
     ),
   )
