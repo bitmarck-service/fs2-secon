@@ -23,7 +23,7 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
       .getOrElse("0.0.1-SNAPSHOT")
   },
 
-  licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0")),
+  licenses += License.Apache2,
 
   homepage := scmInfo.value.map(_.browseUrl),
   scmInfo := Some(
@@ -99,6 +99,6 @@ lazy val javaImpl = projectMatrix.in(file("javaimpl"))
     libraryDependencies ++= Seq(
       "de.tk.opensource" % "secon-tool" % V.seconTool exclude("org.bouncycastle", "bcpkix-jdk15on"),
     ),
-    licenses += ("GNU Lesser General Public License", url("https://www.gnu.org/licenses/lgpl-3.0.de.html")),
+    licenses += ("LGPL-3.0", url("https://www.gnu.org/licenses/lgpl-3.0-standalone.html")),
   )
   .jvmPlatform(scalaVersions)
