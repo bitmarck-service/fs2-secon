@@ -1,17 +1,21 @@
 package de.bitmarck.bms.secon.fs2
 
+import cats.Monad
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
-import fs2.{Chunk, Stream}
+import de.bitmarck.bms.secon.fs2.secontool.{DecryptVerifyImpl, SignEncryptImpl}
+import fs2.io.file.{Files, Path}
+import fs2.{Chunk, Pipe, Stream}
 
+import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.Random
 
 class RoundTrip extends CatsEffectSuite {
-  implicit val signEncrypt: SignEncrypt[IO] = SignEncrypt.make[IO]()
-  implicit val decryptVerify: DecryptVerify[IO] = DecryptVerify.make[IO]()
+  implicit val signEncrypt: SignEncrypt[IO] = SignEncryptImpl.make[IO]()
+  implicit val decryptVerify: DecryptVerify[IO] = DecryptVerifyImpl.make[IO]()
   val keyStore = fs2.io.readClassLoaderResource[IO]("keystore.p12").through(loadKeyStore("secret".toCharArray)).compile.lastOrError.unsafeRunSync()
   val certLookup = CertLookup.fromKeyStore[IO](keyStore)
   val identityLookup = IdentityLookup.fromKeyStore[IO](keyStore, "secret".toCharArray)
@@ -96,6 +100,43 @@ class RoundTrip extends CatsEffectSuite {
       .through(SignEncrypt[IO].signAndEncrypt(aliceId, certLookup, NonEmptyList.one("unknown")))
       .prefetch
       .through(DecryptVerify[IO].decryptAndVerify(identityLookup, certLookup))
+      .through(fs2.text.utf8.decode)
+      .compile
+      .string
+      .map { result =>
+        assertEquals(result, string)
+      }
+  }
+
+  private def signEncryptUnsafe[F[_] : Monad](signEncrypt: SignEncrypt[F]) = new SignEncrypt[F] {
+    override protected def monadF: Monad[F] = implicitly[Monad[F]]
+
+    override def sign(identity: Identity): Pipe[F, Byte, Byte] =
+      signEncrypt.sign(identity)
+
+    override def encrypt(recipients: NonEmptyList[X509Certificate]): Pipe[F, Byte, Byte] =
+      signEncrypt.encrypt(recipients)
+  }
+
+  private def decryptVerifyUnsafe[F[_] : Monad](decryptVerify: DecryptVerify[F]) = new DecryptVerify[F] {
+    override protected def monadF: Monad[F] = implicitly[Monad[F]]
+
+    override def decrypt(identityLookup: IdentityLookup[F]): Pipe[F, Byte, Byte] =
+      decryptVerify.decrypt(identityLookup)
+
+    override def verify(certLookup: CertLookup[F], verifier: Verifier[F]): Pipe[F, Byte, Byte] =
+      decryptVerify.verify(certLookup, verifier)
+  }
+
+  test("unsafe round trip") {
+    val string = "Hello World"
+
+    Stream.emit(string)
+      .covary[IO]
+      .through(fs2.text.utf8.encode)
+      .through(signEncryptUnsafe(SignEncrypt[IO]).signAndEncrypt(aliceId, NonEmptyList.one(bobId.certificate)))
+      .prefetch
+      .through(decryptVerifyUnsafe(DecryptVerify[IO]).decryptAndVerify(identityLookup, certLookup))
       .through(fs2.text.utf8.decode)
       .compile
       .string

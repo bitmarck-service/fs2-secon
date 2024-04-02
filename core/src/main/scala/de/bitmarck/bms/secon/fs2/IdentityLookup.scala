@@ -2,17 +2,13 @@ package de.bitmarck.bms.secon.fs2
 
 import cats.data.OptionT
 import cats.effect.Sync
-import cats.effect.std.Dispatcher
 import cats.syntax.functor._
 import cats.{Applicative, Monad, Monoid}
-import de.tk.opensource.secon.{Identity => SeconIdentity}
 
 import java.security.cert.{X509CertSelector, X509Certificate}
 import java.security.{KeyStore, PrivateKey}
 import java.util
-import java.util.Optional
 import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
 
 trait IdentityLookup[F[_]] {
   protected def monadF: Monad[F]
@@ -66,18 +62,6 @@ object IdentityLookup {
           .value
     }
   )
-
-  private[fs2] def toSeconIdentity[F[_]](
-                                          identityLookup: IdentityLookup[F],
-                                          dispatcher: Dispatcher[F]
-                                        ): SeconIdentity = new SeconIdentity {
-    override def privateKey(): PrivateKey = throw new UnsupportedOperationException()
-
-    override def certificate(): X509Certificate = throw new UnsupportedOperationException()
-
-    override def privateKey(selector: X509CertSelector): Optional[PrivateKey] =
-      dispatcher.unsafeRunSync(identityLookup.identityBySelector(selector)).map(_.privateKey).toJava
-  }
 
   def fromIdentity[F[_] : Sync](
                                  identity: Identity,

@@ -23,7 +23,7 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
       .getOrElse("0.0.1-SNAPSHOT")
   },
 
-  licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0")),
+  licenses += License.Apache2,
 
   homepage := scmInfo.value.map(_.browseUrl),
   scmInfo := Some(
@@ -77,6 +77,7 @@ lazy val root: Project =
       publish / skip := true
     )
     .aggregate(core.projectRefs: _*)
+    .aggregate(javaImpl.projectRefs: _*)
 
 lazy val core = projectMatrix.in(file("core"))
   .settings(commonSettings)
@@ -84,9 +85,20 @@ lazy val core = projectMatrix.in(file("core"))
     name := "fs2-secon",
     libraryDependencies ++= Seq(
       "co.fs2" %% "fs2-io" % V.fs2,
-      "de.tk.opensource" % "secon-tool" % V.seconTool exclude("org.bouncycastle", "bcpkix-jdk15on"),
       "org.bouncycastle" % "bcpkix-jdk18on" % V.bouncyCastle,
       "org.typelevel" %% "cats-effect" % V.catsEffect,
     ),
+  )
+  .jvmPlatform(scalaVersions)
+
+lazy val javaImpl = projectMatrix.in(file("javaimpl"))
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(
+    name := "fs2-secon-javaimpl",
+    libraryDependencies ++= Seq(
+      "de.tk.opensource" % "secon-tool" % V.seconTool exclude("org.bouncycastle", "bcpkix-jdk15on"),
+    ),
+    licenses += ("LGPL-3.0", url("https://www.gnu.org/licenses/lgpl-3.0-standalone.html")),
   )
   .jvmPlatform(scalaVersions)

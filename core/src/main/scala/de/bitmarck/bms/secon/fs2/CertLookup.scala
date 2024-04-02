@@ -1,21 +1,13 @@
 package de.bitmarck.bms.secon.fs2
 
 import cats.data.OptionT
-import cats.effect.std.Dispatcher
-import cats.effect.{Resource, Sync}
+import cats.effect.Sync
 import cats.syntax.functor._
 import cats.{Applicative, Monad, Monoid}
-import de.tk.opensource.secon.{SECON, Directory => SeconDirectory}
 
-import java.net.URI
 import java.security.KeyStore
 import java.security.cert.{X509CertSelector, X509Certificate}
-import java.util
-import java.util.Optional
-import javax.naming.Context
-import javax.naming.directory.{DirContext, InitialDirContext}
 import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
 
 trait CertLookup[F[_]] {
   protected def monadF: Monad[F]
@@ -70,32 +62,6 @@ object CertLookup {
     }
   )
 
-  private[fs2] def toSeconDirectory[F[_]](
-                                           certLookup: CertLookup[F],
-                                           dispatcher: Dispatcher[F]
-                                         ): SeconDirectory = new SeconDirectory {
-    override def certificate(selector: X509CertSelector): Optional[X509Certificate] =
-      dispatcher.unsafeRunSync(certLookup.certificateBySelector(selector)).toJava
-
-    override def certificate(identifier: String): Optional[X509Certificate] =
-      dispatcher.unsafeRunSync(certLookup.certificateByAlias(identifier)).toJava
-
-    override def issuer(cert: X509Certificate): Optional[X509Certificate] =
-      certificate(CertSelectors.issuerOf(cert))
-  }
-
-  private[fs2] def fromSeconDirectory[F[_] : Sync](seconDirectory: SeconDirectory): CertLookup[F] = new CertLookup[F] {
-    override protected def monadF: Monad[F] = Monad[F]
-
-    override def certificateByAlias(alias: String): F[Option[X509Certificate]] = Sync[F].blocking {
-      seconDirectory.certificate(alias).toScala
-    }
-
-    override def certificateBySelector(selector: X509CertSelector): F[Option[X509Certificate]] = Sync[F].blocking {
-      seconDirectory.certificate(selector).toScala
-    }
-  }
-
   def fromCertificate[F[_] : Sync](
                                     certificate: X509Certificate,
                                     expectedAlias: Option[String] = None
@@ -140,26 +106,5 @@ object CertLookup {
         })
         .nextOption()
     }
-  }
-
-  def fromLdap[F[_] : Sync](dirContext: => DirContext): Resource[F, CertLookup[F]] =
-    Resource.make(
-      Sync[F].blocking(dirContext)
-    )(dirContext =>
-      Sync[F].blocking(dirContext.close())
-    ).map(dirContext =>
-      fromSeconDirectory[F](SECON.directory(() => dirContext))
-    )
-
-  def fromLdapUri[F[_] : Sync](
-                                ldapUri: URI,
-                                configure: util.Hashtable[String, String] => Unit = _ => ()
-                              ): Resource[F, CertLookup[F]] = {
-    val env = new util.Hashtable[String, String]
-    env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
-    env.put(Context.PROVIDER_URL, ldapUri.toString)
-    env.put("com.sun.jndi.ldap.connect.pool", "true")
-    configure(env)
-    fromLdap[F](new InitialDirContext(env))
   }
 }
