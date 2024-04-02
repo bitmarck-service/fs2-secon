@@ -128,13 +128,30 @@ class RoundTrip extends CatsEffectSuite {
       decryptVerify.verify(certLookup, verifier)
   }
 
-  test("unsafe round trip") {
+  test("round trip unsafe signEncrypt") {
     val string = "Hello World"
 
     Stream.emit(string)
       .covary[IO]
       .through(fs2.text.utf8.encode)
       .through(signEncryptUnsafe(SignEncrypt[IO]).signAndEncrypt(aliceId, NonEmptyList.one(bobId.certificate)))
+      .prefetch
+      .through(DecryptVerify[IO].decryptAndVerify(identityLookup, certLookup))
+      .through(fs2.text.utf8.decode)
+      .compile
+      .string
+      .map { result =>
+        assertEquals(result, string)
+      }
+  }
+
+  test("round trip unsafe decryptVerify") {
+    val string = "Hello World"
+
+    Stream.emit(string)
+      .covary[IO]
+      .through(fs2.text.utf8.encode)
+      .through(SignEncrypt[IO].signAndEncrypt(aliceId, NonEmptyList.one(bobId.certificate)))
       .prefetch
       .through(decryptVerifyUnsafe(DecryptVerify[IO]).decryptAndVerify(identityLookup, certLookup))
       .through(fs2.text.utf8.decode)
