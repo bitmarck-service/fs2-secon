@@ -1,10 +1,7 @@
 package de.bitmarck.bms.secon.fs2
 
 import cats.data.EitherT
-import cats.effect.std.Dispatcher
-import cats.syntax.either._
 import cats.{Applicative, Monad, Monoid}
-import de.tk.opensource.secon.{CertificateVerificationException, Verifier => SeconVerifier}
 
 import java.security.cert.X509Certificate
 
@@ -24,10 +21,4 @@ object Verifier {
           .value
     }
   )
-
-  private[fs2] def toSeconVerifier[F[_]](verifier: Verifier[F], dispatcher: Dispatcher[F]): SeconVerifier = new SeconVerifier {
-    override def verify(cert: X509Certificate): Unit =
-      dispatcher.unsafeRunSync(verifier.verify(cert))
-        .valueOr(msg => throw new CertificateVerificationException(msg))
-  }
 }
