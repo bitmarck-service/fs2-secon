@@ -19,4 +19,4 @@ libraryDependencies += "de.bitmarck.bms" %% "fs2-secon" % "0.2.1"
 
 This project uses the Apache 2.0 License. See the file called LICENSE.
 
-The module fs2-secon-javaimpl uses GNU Lesser General Public License. See the file called javaimpl/LICENSE
+The module fs2-secon-javaimpl uses GNU Lesser General Public License. See the file called javaimpl/LICENSE.
