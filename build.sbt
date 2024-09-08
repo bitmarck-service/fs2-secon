@@ -12,7 +12,7 @@ val V = new {
   val fs2 = "3.11.0"
   val logbackClassic = "1.5.6"
   val munit = "0.7.29"
-  val munitTaglessFinal = "0.2.1"
+  val munitTaglessFinal = "0.3.0"
   val seconTool = "1.2.0"
 }
 
