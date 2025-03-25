@@ -11,7 +11,7 @@ val V = new {
   val catsEffect = "3.5.7"
   val fs2 = "3.11.0"
   val logbackClassic = "1.5.18"
-  val munit = "1.0.4"
+  val munit = "1.1.0"
   val munitTaglessFinal = "0.3.0"
   val seconTool = "1.2.0"
 }
