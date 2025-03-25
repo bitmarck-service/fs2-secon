@@ -9,32 +9,18 @@ import java.security.KeyStore
 import java.security.cert.{X509CertSelector, X509Certificate}
 import scala.jdk.CollectionConverters._
 
-trait CertLookup[F[_]] {
-  protected def monadF: Monad[F]
+trait CertLookup[F[_]] extends CertAliasLookup[F] with CertSelectorLookup[F] {
+  override def filterByAlias(f: String => Boolean): CertLookup[F] = {
+    val filteredAliasLookup = super.filterByAlias(f)
+    new CertLookup[F] {
+      override protected def monadF: Monad[F] = CertLookup.this.monadF
 
-  def certificateByAlias(alias: String): F[Option[X509Certificate]]
+      override def certificateByAlias(alias: String): F[Option[X509Certificate]] =
+        filteredAliasLookup.certificateByAlias(alias)
 
-  def certificateBySelector(selector: X509CertSelector): F[Option[X509Certificate]]
-
-  final def certificateByAliasUnsafe(alias: String): F[X509Certificate] = {
-    implicit val implicitMonadF: Monad[F] = monadF
-    certificateByAlias(alias).map(_.getOrElse(throw new CertificateNotFoundException(s"Alias: $alias")))
-  }
-
-  final def certificateBySelectorUnsafe(selector: X509CertSelector): F[X509Certificate] = {
-    implicit val implicitMonadF: Monad[F] = monadF
-    certificateBySelector(selector).map(_.getOrElse(throw new CertificateNotFoundException(selector.toString)))
-  }
-
-  final def filterByAlias(f: String => Boolean): CertLookup[F] = new CertLookup[F] {
-    override protected def monadF: Monad[F] = CertLookup.this.monadF
-
-    override def certificateByAlias(alias: String): F[Option[X509Certificate]] =
-      if (f(alias)) CertLookup.this.certificateByAlias(alias)
-      else monadF.pure(None)
-
-    override def certificateBySelector(selector: X509CertSelector): F[Option[X509Certificate]] =
-      CertLookup.this.certificateBySelector(selector)
+      override def certificateBySelector(selector: X509CertSelector): F[Option[X509Certificate]] =
+        CertLookup.this.certificateBySelector(selector)
+    }
   }
 }
 

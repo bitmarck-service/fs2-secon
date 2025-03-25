@@ -2,7 +2,6 @@ package de.bitmarck.bms.secon.fs2
 
 import cats.data.OptionT
 import cats.effect.Sync
-import cats.syntax.functor._
 import cats.{Applicative, Monad, Monoid}
 
 import java.security.cert.{X509CertSelector, X509Certificate}
@@ -10,32 +9,18 @@ import java.security.{KeyStore, PrivateKey}
 import java.util
 import scala.jdk.CollectionConverters._
 
-trait IdentityLookup[F[_]] {
-  protected def monadF: Monad[F]
+trait IdentityLookup[F[_]] extends IdentityAliasLookup[F] with IdentitySelectorLookup[F] {
+  override def filterByAlias(f: String => Boolean): IdentityLookup[F] = {
+    val filteredAliasLookup = super.filterByAlias(f)
+    new IdentityLookup[F] {
+      override protected def monadF: Monad[F] = IdentityLookup.this.monadF
 
-  def identityByAlias(alias: String): F[Option[Identity]]
+      override def identityByAlias(alias: String): F[Option[Identity]] =
+        filteredAliasLookup.identityByAlias(alias)
 
-  def identityBySelector(selector: X509CertSelector): F[Option[Identity]]
-
-  final def identityByAliasUnsafe(alias: String): F[Identity] = {
-    implicit val implicitMonadF: Monad[F] = monadF
-    identityByAlias(alias).map(_.getOrElse(throw new CertificateNotFoundException(s"Alias: $alias")))
-  }
-
-  final def identityBySelectorUnsafe(selector: X509CertSelector): F[Identity] = {
-    implicit val implicitMonadF: Monad[F] = monadF
-    identityBySelector(selector).map(_.getOrElse(throw new CertificateNotFoundException(selector.toString)))
-  }
-
-  final def filterByAlias(f: String => Boolean): IdentityLookup[F] = new IdentityLookup[F] {
-    override protected def monadF: Monad[F] = IdentityLookup.this.monadF
-
-    override def identityByAlias(alias: String): F[Option[Identity]] =
-      if (f(alias)) IdentityLookup.this.identityByAlias(alias)
-      else monadF.pure(None)
-
-    override def identityBySelector(selector: X509CertSelector): F[Option[Identity]] =
-      IdentityLookup.this.identityBySelector(selector)
+      override def identityBySelector(selector: X509CertSelector): F[Option[Identity]] =
+        IdentityLookup.this.identityBySelector(selector)
+    }
   }
 }
 

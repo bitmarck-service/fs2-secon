@@ -3,20 +3,13 @@ package de.bitmarck.bms.secon.fs2
 import cats.Monad
 import fs2.Pipe
 
-trait DecryptVerify[F[_]] {
+trait DecryptVerify[F[_]] extends Decrypt[F] with Verify[F] {
   protected def monadF: Monad[F]
 
-  def decrypt(identityLookup: IdentityLookup[F]): fs2.Pipe[F, Byte, Byte]
-
-  def verify(
-              certLookup: CertLookup[F],
-              verifier: Verifier[F] = Verifier.monoid[F](monadF).empty
-            ): fs2.Pipe[F, Byte, Byte]
-
   def decryptAndVerify(
-                        identityLookup: IdentityLookup[F],
-                        certLookup: CertLookup[F],
-                        verifier: Verifier[F] = Verifier.monoid[F](monadF).empty
+                        identityLookup: IdentitySelectorLookup[F],
+                        certLookup: CertSelectorLookup[F],
+                        verifier: Verifier[F] = Verifier.monoid[F](using monadF).empty
                       ): Pipe[F, Byte, Byte] =
   _.through(decrypt(identityLookup))
     .through(verify(certLookup, verifier))
