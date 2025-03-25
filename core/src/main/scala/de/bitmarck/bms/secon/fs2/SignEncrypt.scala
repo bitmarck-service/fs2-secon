@@ -7,12 +7,8 @@ import fs2.{Pipe, Stream}
 
 import java.security.cert.X509Certificate
 
-trait SignEncrypt[F[_]] {
+trait SignEncrypt[F[_]] extends Sign[F] with Encrypt[F] {
   protected def monadF: Monad[F]
-
-  def sign(identity: Identity): Pipe[F, Byte, Byte]
-
-  def encrypt(recipients: NonEmptyList[X509Certificate]): Pipe[F, Byte, Byte]
 
   def signAndEncrypt(
                       identity: Identity,
@@ -23,9 +19,9 @@ trait SignEncrypt[F[_]] {
 
   final def signAndEncrypt(
                             identity: Identity,
-                            certLookup: CertLookup[F],
+                            certLookup: CertAliasLookup[F],
                             recipientAliases: NonEmptyList[String]
-                          ): fs2.Pipe[F, Byte, Byte] = { stream =>
+                          ): Pipe[F, Byte, Byte] = { stream =>
     implicit val implicitMonadF: Monad[F] = monadF
     Stream.eval(recipientAliases.map(certLookup.certificateByAliasUnsafe).sequence).flatMap { recipients =>
       signAndEncrypt(identity, recipients)(stream)

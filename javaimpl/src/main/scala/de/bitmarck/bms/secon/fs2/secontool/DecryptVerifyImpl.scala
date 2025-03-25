@@ -14,7 +14,7 @@ object DecryptVerifyImpl {
   def make[F[_] : Async](chunkSize: Int = 1024 * 64): DecryptVerify[F] = new DecryptVerify[F] {
     protected def monadF: Monad[F] = Monad[F]
 
-    override def decrypt(identityLookup: IdentityLookup[F]): Pipe[F, Byte, Byte] = { stream =>
+    override def decrypt(identityLookup: IdentitySelectorLookup[F]): Pipe[F, Byte, Byte] = { stream =>
       Stream.resource(Dispatcher.sequential[F]).flatMap { dispatcher =>
         val subscriber = SECON.subscriber(
           toSeconIdentity(identityLookup, dispatcher),
@@ -33,7 +33,7 @@ object DecryptVerifyImpl {
       }
     }
 
-    override def verify(certLookup: CertLookup[F], verifier: Verifier[F]): Pipe[F, Byte, Byte] = { stream =>
+    override def verify(certLookup: CertSelectorLookup[F], verifier: Verifier[F]): Pipe[F, Byte, Byte] = { stream =>
       Stream.resource(Dispatcher.sequential[F]).flatMap { dispatcher =>
         val subscriber = SECON.subscriber(
           dummySeconIdentity,
@@ -54,8 +54,8 @@ object DecryptVerifyImpl {
     }
 
     override def decryptAndVerify(
-                                   identityLookup: IdentityLookup[F],
-                                   certLookup: CertLookup[F],
+                                   identityLookup: IdentitySelectorLookup[F],
+                                   certLookup: CertSelectorLookup[F],
                                    verifier: Verifier[F]
                                  ): Pipe[F, Byte, Byte] = { stream =>
       Stream.resource(Dispatcher.sequential[F]).flatMap { dispatcher =>

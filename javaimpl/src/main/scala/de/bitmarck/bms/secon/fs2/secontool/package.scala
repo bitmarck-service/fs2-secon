@@ -25,7 +25,7 @@ package object secontool {
   }
 
   private[secontool] def toSeconIdentity[F[_]](
-                                     identityLookup: IdentityLookup[F],
+                                     identityLookup: IdentitySelectorLookup[F],
                                      dispatcher: Dispatcher[F]
                                    ): SeconIdentity = new SeconIdentity {
     override def privateKey(): PrivateKey = throw new UnsupportedOperationException()
@@ -48,17 +48,17 @@ package object secontool {
   }
 
   private[secontool] def toSeconDirectory[F[_]](
-                                      certLookup: CertLookup[F],
+                                      certLookup: CertSelectorLookup[F],
                                       dispatcher: Dispatcher[F]
                                     ): SeconDirectory = new SeconDirectory {
     override def certificate(selector: X509CertSelector): Optional[X509Certificate] =
       dispatcher.unsafeRunSync(certLookup.certificateBySelector(selector)).toJava
 
-    override def certificate(identifier: String): Optional[X509Certificate] =
-      dispatcher.unsafeRunSync(certLookup.certificateByAlias(identifier)).toJava
-
     override def issuer(cert: X509Certificate): Optional[X509Certificate] =
       certificate(CertSelectors.issuerOf(cert))
+
+    override def certificate(identifier: String): Optional[X509Certificate] =
+      throw new UnsupportedOperationException()
   }
 
   private[secontool] def toSeconVerifier[F[_]](verifier: Verifier[F], dispatcher: Dispatcher[F]): SeconVerifier = new SeconVerifier {
