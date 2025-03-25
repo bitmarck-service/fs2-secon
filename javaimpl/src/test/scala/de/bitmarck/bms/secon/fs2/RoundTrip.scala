@@ -121,10 +121,10 @@ class RoundTrip extends CatsEffectSuite {
   private def decryptVerifyUnsafe[F[_] : Monad](decryptVerify: DecryptVerify[F]) = new DecryptVerify[F] {
     override protected def monadF: Monad[F] = implicitly[Monad[F]]
 
-    override def decrypt(identityLookup: IdentityLookup[F]): Pipe[F, Byte, Byte] =
+    override def decrypt(identityLookup: IdentitySelectorLookup[F]): Pipe[F, Byte, Byte] =
       decryptVerify.decrypt(identityLookup)
 
-    override def verify(certLookup: CertLookup[F], verifier: Verifier[F]): Pipe[F, Byte, Byte] =
+    override def verify(certLookup: CertSelectorLookup[F], verifier: Verifier[F]): Pipe[F, Byte, Byte] =
       decryptVerify.verify(certLookup, verifier)
   }
 
