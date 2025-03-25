@@ -108,6 +108,7 @@ class RoundTrip extends CatsEffectSuite {
       }
   }
 
+  // use unsafe sign and encrypt methods on signAndEncrypt instead of using the overridden signAndEncrypt method
   private def signEncryptUnsafe[F[_] : Monad](signEncrypt: SignEncrypt[F]) = new SignEncrypt[F] {
     override protected def monadF: Monad[F] = implicitly[Monad[F]]
 
@@ -118,6 +119,7 @@ class RoundTrip extends CatsEffectSuite {
       signEncrypt.encrypt(recipients)
   }
 
+  // use unsafe decrypt and verify methods on decryptAndVerify instead of using the overridden decryptAndVerify method
   private def decryptVerifyUnsafe[F[_] : Monad](decryptVerify: DecryptVerify[F]) = new DecryptVerify[F] {
     override protected def monadF: Monad[F] = implicitly[Monad[F]]
 
