@@ -8,3 +8,7 @@ import java.security.cert.X509Certificate
 trait Encrypt[F[_]] {
   def encrypt(recipients: NonEmptyList[X509Certificate]): Pipe[F, Byte, Byte]
 }
+
+object Encrypt {
+  def apply[F[_]](implicit encrypt: Encrypt[F]): Encrypt[F] = encrypt
+}

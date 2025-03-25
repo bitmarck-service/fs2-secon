@@ -11,3 +11,7 @@ trait Verify[F[_]] {
               verifier: Verifier[F] = Verifier.monoid[F](using monadF).empty
             ): Pipe[F, Byte, Byte]
 }
+
+object Verify {
+  def apply[F[_]](implicit verify: Verify[F]): Verify[F] = verify
+}

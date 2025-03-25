@@ -1,7 +1,8 @@
 package de.bitmarck.bms.secon.fs2
 
-import cats.Monad
+import cats.data.OptionT
 import cats.syntax.functor._
+import cats.{Applicative, Monad, Monoid}
 
 trait IdentityAliasLookup[F[_]] {
   protected def monadF: Monad[F]
@@ -20,4 +21,22 @@ trait IdentityAliasLookup[F[_]] {
       if (f(alias)) IdentityAliasLookup.this.identityByAlias(alias)
       else monadF.pure(None)
   }
+}
+
+object IdentityAliasLookup {
+  implicit def monoid[F[_] : Monad]: Monoid[IdentityAliasLookup[F]] = Monoid.instance(
+    new IdentityAliasLookup[F] {
+      override protected def monadF: Monad[F] = Monad[F]
+
+      override def identityByAlias(alias: String): F[Option[Identity]] = Applicative[F].pure(None)
+    },
+    (a, b) => new IdentityAliasLookup[F] {
+      override protected def monadF: Monad[F] = Monad[F]
+
+      override def identityByAlias(alias: String): F[Option[Identity]] =
+        OptionT(a.identityByAlias(alias))
+          .orElseF(b.identityByAlias(alias))
+          .value
+    }
+  )
 }
