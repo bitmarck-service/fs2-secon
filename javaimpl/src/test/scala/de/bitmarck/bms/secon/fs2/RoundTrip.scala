@@ -3,19 +3,22 @@ package de.bitmarck.bms.secon.fs2
 import cats.Monad
 import cats.data.NonEmptyList
 import cats.effect.IO
+import cats.effect.std.Dispatcher
 import cats.effect.unsafe.implicits.global
+import de.bitmarck.bms.secon.fs2.Decrypt.DecryptInfo
+import de.bitmarck.bms.secon.fs2.Verify.VerifyInfo
 import de.bitmarck.bms.secon.fs2.secontool.{DecryptVerifyImpl, SignEncryptImpl}
-import fs2.io.file.{Files, Path}
 import fs2.{Chunk, Pipe, Stream}
 
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.Random
+import scala.util.chaining._
 
 class RoundTrip extends CatsEffectSuite {
   implicit val signEncrypt: SignEncrypt[IO] = SignEncryptImpl.make[IO]()
-  implicit val decryptVerify: DecryptVerify[IO] = DecryptVerifyImpl.make[IO]()
+  implicit val decryptVerify: DecryptVerify[IO] = DecryptVerifyImpl.make[IO](Dispatcher.parallel[IO].allocated.map(_._1).unsafeRunSync())
   val keyStore = fs2.io.readClassLoaderResource[IO]("keystore.p12").through(loadKeyStore("secret".toCharArray)).compile.lastOrError.unsafeRunSync()
   val certLookup = CertLookup.fromKeyStore[IO](keyStore)
   val identityLookup = IdentityLookup.fromKeyStore[IO](keyStore, "secret".toCharArray)
@@ -44,7 +47,7 @@ class RoundTrip extends CatsEffectSuite {
       }
   }
 
-  test("round trip 2") {
+  test("round trip with cert lookup") {
     val string = "Hello World"
     Stream.emit(string)
       .covary[IO]
@@ -126,8 +129,14 @@ class RoundTrip extends CatsEffectSuite {
     override def decrypt(identityLookup: IdentitySelectorLookup[F]): Pipe[F, Byte, Byte] =
       decryptVerify.decrypt(identityLookup)
 
+    override def decryptWithInfo(identityLookup: IdentitySelectorLookup[F]): Stream[F, Byte] => (Stream[F, Byte], F[DecryptInfo]) =
+      decryptVerify.decryptWithInfo(identityLookup)
+
     override def verify(certLookup: CertSelectorLookup[F], verifier: Verifier[F]): Pipe[F, Byte, Byte] =
       decryptVerify.verify(certLookup, verifier)
+
+    override def verifyWithInfo(signerCertLookup: CertSelectorLookup[F], verifier: Verifier[F]): Stream[F, Byte] => (Stream[F, Byte], F[VerifyInfo]) =
+      decryptVerify.verifyWithInfo(signerCertLookup, verifier)
   }
 
   test("round trip unsafe signEncrypt") {
@@ -161,6 +170,58 @@ class RoundTrip extends CatsEffectSuite {
       .string
       .map { result =>
         assertEquals(result, string)
+      }
+  }
+
+  test("round trip with result") {
+    val string = "Hello World"
+    Stream.emit(string)
+      .covary[IO]
+      .through(fs2.text.utf8.encode)
+      .through(SignEncrypt[IO].signAndEncrypt(aliceId, NonEmptyList.one(bobId.certificate)))
+      .prefetch
+      .pipe(DecryptVerify[IO].decryptAndVerifyWithInfo(identityLookup, certLookup))
+      .pipe {
+        case (decryptedBytes, decryptInfo, verifyInfo) =>
+          decryptedBytes
+            .through(fs2.text.utf8.decode)
+            .compile
+            .string
+            .map { result =>
+              assertEquals(result, string)
+            } >>
+            decryptInfo.map { case DecryptInfo(identity) =>
+              assertEquals(identity, bobId)
+            } >>
+            verifyInfo.map { case VerifyInfo(signerCert) =>
+              assertEquals(signerCert, aliceId.certificate)
+            }
+      }
+  }
+
+  test("round trip with result unsafe decryptVerify") {
+    val string = "Hello World"
+    Stream.emit(string)
+      .covary[IO]
+      .through(fs2.text.utf8.encode)
+      .through(SignEncrypt[IO].signAndEncrypt(aliceId, NonEmptyList.one(bobId.certificate)))
+      .prefetch
+      .pipe(decryptVerifyUnsafe(DecryptVerify[IO]).decryptAndVerifyWithInfo(identityLookup, certLookup))
+      .pipe {
+        case (decryptedBytes, decryptInfo, verifyInfo) =>
+          decryptedBytes
+            .through(fs2.text.utf8.decode)
+            .compile
+            .string
+            .map { result =>
+              assertEquals(result, string)
+            } >>
+            decryptInfo.map { case DecryptInfo(identity) =>
+              assertEquals(identity, bobId)
+            } >>
+            verifyInfo.map { case VerifyInfo(signerCert) =>
+              assertEquals(signerCert, aliceId.certificate)
+            }
       }
   }
 
