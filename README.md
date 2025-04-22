@@ -12,8 +12,8 @@
 ### build.sbt
 
 ```sbt
-libraryDependencies += "de.bitmarck.bms" %% "fs2-secon" % "0.3.0"
-libraryDependencies += "de.bitmarck.bms" %% "fs2-secon-javaimpl" % "0.3.0"
+libraryDependencies += "de.bitmarck.bms" %% "fs2-secon" % "0.4.0"
+libraryDependencies += "de.bitmarck.bms" %% "fs2-secon-javaimpl" % "0.4.0"
 ```
 
 ## License
